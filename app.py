@@ -192,6 +192,7 @@ class Predict(Resource):
         print(df.head())
         return {"message": "The predicted price for this housing property is ${}.".format(result)}, 200
 
+
 if __name__ == '__main__':
     csv_file = "predict.csv"
     df = pd.read_csv(csv_file)
