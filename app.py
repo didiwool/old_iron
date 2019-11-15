@@ -10,6 +10,25 @@ from flask_restplus import inputs
 from flask_restplus import reqparse
 from itsdangerous import SignatureExpired, JSONWebSignatureSerializer, BadSignature
 import pickle
+from math import sin, cos, sqrt, atan2, radians
+
+# helper function
+def get_distance(x1, y1, x2, y2):
+    r = 6373.0
+
+    x1 = radians(x1)
+    y1 = radians(y1)
+    x2 = radians(x2)
+    y2 = radians(y2)
+
+    dlon = y2 - y1
+    dlat = x2 - x1
+
+    a = sin(dlat / 2) ** 2 + cos(x1) * cos(x2) * sin(dlon / 2) ** 2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+    distance = r * c
+    return distance
 
 
 class AuthenticationToken:
@@ -88,6 +107,7 @@ property_model = api.model('Property', {
 })
 
 parser = reqparse.RequestParser()
+# parser.add_argument('distance', type=int)
 # parser.add_argument('order', choices=list(column for column in book_model.keys()))
 # parser.add_argument('ascending', type=inputs.boolean)
 parser.add_argument('Rooms', type=int)
@@ -109,6 +129,26 @@ credential_model = api.model('credential', {
 credential_parser = reqparse.RequestParser()
 credential_parser.add_argument('username', type=str)
 credential_parser.add_argument('password', type=str)
+
+position_model = api.model('position', {
+    'X': fields.Float,
+    'Y': fields.Float
+})
+
+pos_parser = reqparse.RequestParser()
+pos_parser.add_argument('distance', type=int)
+pos_parser.add_argument('ascending', type=bool)
+pos_parser.add_argument('latitude', type=float)
+pos_parser.add_argument('longitude', type=float)
+
+# school_model = api.model('position', {
+#     'X': fields.Float,
+#     'Y': fields.Float,
+#     'Education_Sector': fields.String,
+#     'School_Name': fields.String,
+#     'School_Type': fields.String,
+#     'Postal_Town': fields.String
+# })
 
 
 @api.route('/login')
@@ -193,9 +233,53 @@ class Predict(Resource):
         return {"message": "The predicted price for this housing property is ${}.".format(result)}, 200
 
 
+@api.route('/findschool_with_dist')
+class FindSchoolDistance(Resource):
+    @api.response(200, 'Successful')
+    # @api.response(400, 'Missing Information')
+    @api.doc(description="Return a list of school within a distance range")
+    @api.expect(pos_parser, validate=True)
+    # @requires_auth
+    def get(self):
+        # info = request.json
+
+        args = pos_parser.parse_args()
+        ascending = args.get('ascending', True)
+        distance = args.get('distance')
+        latitude = args.get('latitude')
+        longitude = args.get('longitude')
+        df_dist = df2
+        for index, row in df_dist.iterrows():
+            df_dist.loc[index, "distance"] = get_distance(row["X"], row["Y"], latitude, longitude)
+
+        print(df_dist["distance"].head())
+        df_filtered = df_dist[df_dist["distance"] < distance]
+        df_filtered.sort_values(by="distance", inplace=True, ascending=ascending)
+
+        json_str = df_filtered.to_json(orient='index')
+
+        # convert the string JSON to a real JSON
+        ds = json.loads(json_str)
+        ret = []
+
+        for idx in ds:
+            school = ds[idx]
+            ret.append(school)
+
+        return ret
+#
+#     @api.response(200, 'Successful')
+#     # @api.response(400, 'Missing Information')
+#     @api.doc(description="Return a list of school within a distance range")
+#     @api.expect(position_model, validate=True)
+#     def post(self):
+
+
 if __name__ == '__main__':
     csv_file = "predict.csv"
     df = pd.read_csv(csv_file)
     df1 = pd.read_csv("User.csv")
-
+    df2 = pd.read_csv("schoollocations2019.csv")
+    df2 = df2[['Education_Sector', 'School_Name', 'School_Type', 'Postal_Town', 'X', 'Y']]
+    df2.set_index('School_Name', inplace=True)
     app.run(debug=True)
