@@ -8,6 +8,7 @@ import requests
 
 app = Flask(__name__)
 
+headers = {'content-type': "application/json"}
 
 @app.route('/', methods=['POST', 'GET'])
 def login():
@@ -35,11 +36,13 @@ def register():
         print(usertype)
 
 
-        url = 'http://127.0.0.1:5000/register'
         s = json.dumps({'username': username, 'password': password,'usertype': usertype})
-        r = requests.post(url, data=s)
+        print(username, password, usertype)
+        r = requests.post("http://127.0.0.1:5000/register", headers=headers, data=s)
         print(r)
-       
+        print("-----------" + str(r.status_code))
+        print(r.json()["message"])
+
         if r.status_code == 201:
             print("=============")
             return render_template("home.html")
@@ -47,7 +50,7 @@ def register():
             print("*************")
             return render_template('register.html')
 
-        print("-----------" + r.status_code)
+
     return render_template('register.html')
 
 
