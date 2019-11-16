@@ -8,8 +8,11 @@ import requests
 
 app = Flask(__name__)
 
-
 @app.route('/', methods=['POST', 'GET'])
+def homepage():
+    return render_template('homepage.html')
+
+@app.route('/login', methods=['POST', 'GET'])
 def login():
     if request.method == "POST":
         username = request.form["username"]
@@ -31,22 +34,14 @@ def register():
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
-        usertype = int(request.form["usertype"])
-        print(usertype)
+        usertype = 1
 
         headers = {'content-type': "application/json"}
         s = json.dumps({'username': username, 'password': password,'usertype': usertype})
-        print(username, password, usertype)
         r = requests.post("http://127.0.0.1:5000/register", headers=headers, data=s)
-        print(r)
-        print("-----------" + str(r.status_code))
-        print(r.json()["message"])
-
         if r.status_code == 201:
-            print("=============")
             return render_template("home.html")
         else:
-            print("*************")
             return render_template('register.html')
 
 
