@@ -4,6 +4,7 @@ from time import time
 import pandas as pd
 from flask import Flask
 from flask import request
+from flask import jsonify
 from flask_restplus import Resource, Api, abort
 from flask_restplus import fields
 from flask_restplus import inputs
@@ -141,15 +142,17 @@ pos_parser.add_argument('ascending', type=bool)
 pos_parser.add_argument('latitude', type=float)
 pos_parser.add_argument('longitude', type=float)
 
-# school_model = api.model('position', {
-#     'X': fields.Float,
-#     'Y': fields.Float,
-#     'Education_Sector': fields.String,
-#     'School_Name': fields.String,
-#     'School_Type': fields.String,
-#     'Postal_Town': fields.String
-# })
-
+school_model = api.model('position', {
+    'X': fields.Float,
+    'Y': fields.Float,
+    'Education_Sector': fields.String,
+    'School_Name': fields.String,
+    'School_Type': fields.String,
+    'Postal_Town': fields.String
+})
+school_parser = reqparse.RequestParser()
+school_parser.add_argument('pageNumber', type=int)
+school_parser.add_argument('pageSize', type=int)
 
 @api.route('/login')
 class Login(Resource):
@@ -268,6 +271,58 @@ class FindSchoolDistance(Resource):
 
         return ret
 #
+@api.route('/school')
+class School(Resource):
+    @api.response(200, 'Successful')
+    @api.response(400, 'Fail to return')
+    @api.doc(description="Return a list of school with pagination")
+    @api.expect(school_parser, validate=True)
+    # @requires_auth
+    def get(self):
+
+        args = school_parser.parse_args()
+        pageNumber = args["pageNumber"]
+        pageSize = args["pageSize"]
+        count = df2["School_Name"].count()
+        if count == 0:
+            respData = {}
+        else:
+            totalPage = int(count / pageSize)
+            if (count % pageSize) > 0:
+                totalPage += 1
+
+            skipNumber = pageSize * (pageNumber - 1)
+            endNumber = skipNumber+pageSize-1
+            if endNumber >= count:
+                endNumber = count - 1
+            df_paged = df2[skipNumber:endNumber]
+            json_str = df_paged.to_json(orient='index')
+            ds = json.loads(json_str)
+            ret = []
+            for idx in ds:
+                school = ds[idx]
+                ret.append(school)
+
+            hasPrev = False
+            if pageNumber > 1:
+                hasPrev = True
+            hasNext = False
+            if pageNumber < totalPage:
+                hasNext = True
+            respData = {
+                "schoolList": ret,
+                "curPageNum": pageNumber,
+                "numPerPage": pageSize,
+                "totalNum": int(count),
+                "totalPageNum": totalPage,
+                "hasPrev": hasPrev,
+                "hasNext": hasNext,
+            }
+        respdict = {"code": 200, "message": "Get question ok", "data": respData}
+        return jsonify(respdict)
+
+
+#
 #     @api.response(200, 'Successful')
 #     # @api.response(400, 'Missing Information')
 #     @api.doc(description="Return a list of school within a distance range")
@@ -280,6 +335,6 @@ if __name__ == '__main__':
     df = pd.read_csv(csv_file)
     df1 = pd.read_csv("User.csv")
     df2 = pd.read_csv("schoollocations2019.csv")
-    df2 = df2[['Education_Sector', 'School_Name', 'School_Type', 'Postal_Town', 'X', 'Y']]
-    df2.set_index('School_Name', inplace=True)
+    df2 = df2[['School_No', 'Education_Sector', 'School_Name', 'School_Type', 'Postal_Town', 'X', 'Y']]
+    print(df2.index.unique())
     app.run(debug=True)
