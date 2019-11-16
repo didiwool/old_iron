@@ -8,7 +8,6 @@ import requests
 
 app = Flask(__name__)
 
-headers = {'content-type': "application/json"}
 
 @app.route('/', methods=['POST', 'GET'])
 def login():
@@ -35,7 +34,7 @@ def register():
         usertype = int(request.form["usertype"])
         print(usertype)
 
-
+        headers = {'content-type': "application/json"}
         s = json.dumps({'username': username, 'password': password,'usertype': usertype})
         print(username, password, usertype)
         r = requests.post("http://127.0.0.1:5000/register", headers=headers, data=s)
