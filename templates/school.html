@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>register</title>
+</head>
+<body>
+    <style>
+		input { border: 1px solid black }
+	</style>
+	<form method = "POST">
+	    <h2>
+	        <p style="text-align: center">
+				<div class = "login_style">
+					Distance:<br>  <input type="text" name="distance" > <br>
+					<select name="ascending">
+					  <option value ="Ascending">Ascending</option>
+					  <option value ="Dscending">Dscending</option>
+					</select>
+					Latitude:<br>  <input type="Latitude" name="latitude" > <br>
+					Longitude:<br>  <input type="Longitude" name="longitude"> <br> 
+					<button>search</button>
+				</div>
+	        </p>
+	    </h2>
+	</form>
+</body>
+
+<script>
+ var flag = true;
+ console.log(1111)
+ function check(obj){
+	if(obj.id == 'ac' && obj.checked == true){
+		console.log(2222)
+		document.getElementById('dc').checked = false;
+	}
+	else if(obj.id == 'dc' && obj.checked == true){
+		console.log(3333)
+		document.getElementById('ac').checked = false;
+	}
+ }
+
+
+ </script>
+</html>

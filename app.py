@@ -47,6 +47,29 @@ def register():
 
     return render_template('register.html')
 
+@app.route('/school', methods=['POST', 'GET'])
+def school():
+    if request.method == "POST":
+        distance = request.form["distance"]
+        ascending = request.form["ascending"]
+        latitude = request.form["latitude"]
+        longitude = request.form["longitude"]
+        ascending = str_to_bool(ascending)
+        
+        r = requests.get("http://127.0.0.1:5000/findschool_with_dist?distance={}&ascending={}&latitude={}&longitude={}".format(distance, ascending,latitude,longitude))
+        
+        print(r)
+        if r.status_code == 200:
+            return render_template("home.html")
+        else:
+            return render_template('school.html')
+      
+    return render_template('school.html')
+
+
+def str_to_bool(input):
+    return True if input == 'Ascending' else False
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0',port=12345, debug=True)
