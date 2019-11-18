@@ -153,6 +153,11 @@ school_model = api.model('position', {
 school_parser = reqparse.RequestParser()
 school_parser.add_argument('pageNumber', type=int)
 school_parser.add_argument('pageSize', type=int)
+# parser.add_argument('distance', type=int)
+school_parser.add_argument('education_type', choices=['Government', 'Independent', 'Catholic', 'Any'])
+school_parser.add_argument('school_type', choices=['Primary', 'Pri/Sec', 'Special', 'Secondary', 'Language', 'Any'])
+school_parser.add_argument('ascending', type=inputs.boolean)
+
 
 @api.route('/login')
 class Login(Resource):
@@ -279,11 +284,18 @@ class School(Resource):
     @api.expect(school_parser, validate=True)
     # @requires_auth
     def get(self):
-
         args = school_parser.parse_args()
         pageNumber = args["pageNumber"]
         pageSize = args["pageSize"]
-        count = df2["School_Name"].count()
+        school_type = args.get('school_type')
+        education_type = args.get('education_type')
+        ascending = args.get('ascending', True)
+        if school_type != 'Any':
+            df_filtered = df2[df2["School_Type"] == school_type]
+        if education_type != 'Any':
+            df_filtered = df_filtered[df_filtered['Education_Sector'] == education_type]
+        count = df_filtered["School_Name"].count()
+        df_filtered.sort_values(by="School_Name", inplace=True, ascending=ascending)
         if count == 0:
             respData = {}
         else:
@@ -295,7 +307,7 @@ class School(Resource):
             endNumber = skipNumber+pageSize-1
             if endNumber >= count:
                 endNumber = count - 1
-            df_paged = df2[skipNumber:endNumber]
+            df_paged = df_filtered[skipNumber:endNumber]
             json_str = df_paged.to_json(orient='index')
             ds = json.loads(json_str)
             ret = []
@@ -336,5 +348,5 @@ if __name__ == '__main__':
     df1 = pd.read_csv("User.csv")
     df2 = pd.read_csv("schoollocations2019.csv")
     df2 = df2[['School_No', 'Education_Sector', 'School_Name', 'School_Type', 'Postal_Town', 'X', 'Y']]
-    print(df2.index.unique())
+    print(df2['School_Type'].unique())
     app.run(debug=True)
