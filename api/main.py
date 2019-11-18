@@ -1,3 +1,4 @@
+import datetime
 import json
 from functools import wraps
 from time import time
@@ -12,6 +13,7 @@ from flask_restplus import reqparse
 from itsdangerous import SignatureExpired, JSONWebSignatureSerializer, BadSignature
 import pickle
 from math import sin, cos, sqrt, atan2, radians
+
 
 # helper function
 def get_distance(x1, y1, x2, y2):
@@ -158,6 +160,35 @@ school_parser.add_argument('education_type', choices=['Government', 'Independent
 school_parser.add_argument('school_type', choices=['Primary', 'Pri/Sec', 'Special', 'Secondary', 'Language', 'Any'])
 school_parser.add_argument('ascending', type=inputs.boolean)
 
+admin_parser = reqparse.RequestParser()
+admin_parser.add_argument('time', type=int)
+admin_parser.add_argument('api_type', choices=['predict', 'login', 'school_list', 'Any'])
+
+
+@api.route('/admin_check')
+class AdminCheck(Resource):
+    @api.response(200, 'Successful')
+    @api.response(401, 'Fail')
+    @api.doc(description="Check the api calls")
+    @api.expect(admin_parser, validate=True)
+    # @requires_auth
+    def post(self):
+        args = admin_parser.parse_args()
+        duration = args.get('time')
+        api_type = args.get('api_type')
+        df_record = pd.read_csv("record.csv")
+        if api_type != 'Any':
+            df_filtered = df_record[df_record["call_name"] == api_type]
+        else:
+            df_filtered = df_record
+        # datetime.timedelta(datetime.now())
+        gap = datetime.timedelta(seconds=duration*3600)
+        limit = datetime.datetime.now()-gap
+        df_filtered['time'] = pd.to_datetime(df_filtered['time'])
+        df_filtered2 = df_filtered[df_filtered["time"] > limit]
+        count = df_filtered2["time"].count()
+        return {"message": "The number of api calls for {} is {}.".format(api_type, count)}, 200
+
 
 @api.route('/login')
 class Login(Resource):
@@ -173,7 +204,10 @@ class Login(Resource):
             row_id = df1.loc[df1['username'] == username].index[0]
             if str(df1.loc[row_id, 'password']) == password:
                 return {"token": auth.generate_token(username)}
-
+        num = df_record["time"].count()
+        df_record.loc[num, "call_name"] = "login"
+        df_record.loc[num, "time"] = datetime.datetime.now()
+        df_record.to_csv("record.csv")
         return {"message": "authorization has been refused for those credentials."}, 401
 
 
@@ -238,6 +272,10 @@ class Predict(Resource):
             df.loc[index, key] = info[key]
         df.loc[index, "Price"] = result
         print(df.head())
+        num = df_record["time"].count()
+        df_record.loc[num, "call_name"] = "predict"
+        df_record.loc[num, "time"] = datetime.datetime.now()
+        df_record.to_csv("record.csv")
         return {"message": "The predicted price for this housing property is ${}.".format(result)}, 200
 
 
@@ -290,6 +328,7 @@ class School(Resource):
         school_type = args.get('school_type')
         education_type = args.get('education_type')
         ascending = args.get('ascending', True)
+        df_filtered = df2
         if school_type != 'Any':
             df_filtered = df2[df2["School_Type"] == school_type]
         if education_type != 'Any':
@@ -331,6 +370,10 @@ class School(Resource):
                 "hasNext": hasNext,
             }
         respdict = {"code": 200, "message": "Get question ok", "data": respData}
+        num = df_record["time"].count()
+        df_record.loc[num, "call_name"] = "school_list"
+        df_record.loc[num, "time"] = datetime.datetime.now()
+        df_record.to_csv("record.csv")
         return jsonify(respdict)
 
 
@@ -349,4 +392,5 @@ if __name__ == '__main__':
     df2 = pd.read_csv("schoollocations2019.csv")
     df2 = df2[['School_No', 'Education_Sector', 'School_Name', 'School_Type', 'Postal_Town', 'X', 'Y']]
     print(df2['School_Type'].unique())
+    df_record = pd.read_csv("record.csv")
     app.run(debug=True)
