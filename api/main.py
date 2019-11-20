@@ -357,6 +357,11 @@ if __name__ == '__main__':
     df_crime['Incidents Recorded'] = df_crime['Incidents Recorded'].replace('["",]*', '', regex=True)
     df_crime['Incidents Recorded'] = df_crime['Incidents Recorded'].astype(int)
     df_crime['Incidents Recorded'] = df_crime['Incidents Recorded']/10
+    df_crime['Incidents Recorded'] = df_crime['Incidents Recorded'].astype(int)
     df_crime = df_crime.groupby('Postcode')['Incidents Recorded'].apply(lambda x: x.sum())
-    # print(df_crime.head())
+    df_property = pd.read_csv("vic_property.csv")
+    df_property = df_property[["postcode", "suburb", "latitude", "longitude", "bedrooms", "bathrooms", "parkingSpaces",
+                               "propertyType", "price"]]
+    df_crime = pd.merge(df_crime, df_property, left_on='Postcode', right_on='postcode')
+    print(df_crime.head())
     app.run(debug=True)
