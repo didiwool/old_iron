@@ -131,7 +131,7 @@ credential_parser.add_argument('username', type=str)
 credential_parser.add_argument('password', type=str)
 
 
-school_model = api.model('position', {
+school_model = api.model('School', {
     'X': fields.Float,
     'Y': fields.Float,
     'Education_Sector': fields.String,
@@ -267,10 +267,10 @@ class Predict(Resource):
         return {"message": "The predicted price for this housing property is ${}.".format(result)}, 200
 
 
-@api.route('/school')
-class School(Resource):
+@api.route('/schools')
+class SchoolList(Resource):
     @api.response(200, 'Successful')
-    @api.response(400, 'Fail to return')
+    @api.response(404, 'Fail to return')
     @api.doc(description="Return a list of school with pagination")
     @api.expect(school_parser, validate=True)
     # @requires_auth
@@ -335,6 +335,26 @@ class School(Resource):
         df_record.to_csv("record.csv")
         return jsonify(respdict)
 
+    @api.response(201, 'Successful')
+    @api.response(400, 'Fail to add a school')
+    @api.doc(description="Add a new school to the list")
+    @api.expect(school_model, validate=True)
+    # @requires_auth
+    def post(self):
+        school = request.json
+        if 'School_Name' not in school:
+            return {"message": "Missing Name of School"}, 400
+        name = school['School_Name']
+        if name in df2.School_Name:
+            return {"message": "A school with Name={} already exists".format(name)}, 400
+        index = df2.School_Name.count()
+        for key in school:
+            if key not in school_model.keys():
+                return {"message": "Property {} is invalid".format(key)}, 400
+            df2.loc[index, key] = school[key]
+
+        print(df2.tail(5))
+        return {"message": "School {} is created".format(name)}, 201
 
 #
 #     @api.response(200, 'Successful')
