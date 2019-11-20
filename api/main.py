@@ -98,15 +98,12 @@ def requires_auth(f):
 
 # The following is the schema of Book
 property_model = api.model('Property', {
-    'Rooms': fields.Integer,
-    'Type': fields.Integer,
     'Lattitude': fields.Float,
     'Longtitude': fields.Float,
-    'Bedroom2': fields.Integer,
+    'Bedroom': fields.Integer,
     'Bathroom': fields.Integer,
     'Car': fields.Integer,
-    'YearBuilt': fields.Integer,
-    'Landsize': fields.Float
+    'Type': fields.Integer
 })
 
 parser = reqparse.RequestParser()
@@ -246,26 +243,23 @@ class Predict(Resource):
     @api.response(400, 'Missing Information')
     @api.doc(description="Predict price of a real estate")
     @api.expect(property_model, validate=True)
-    @requires_auth
+    # @requires_auth
     def post(self):
         info = request.json
         print(len(info.keys()))
-        if len(info.keys()) < 9:
+        if len(info.keys()) < 6:
             return {"message": "Missing Information for Prediction"}, 400
 
-        room = info['Rooms']
-        kind = info['Type']
         lat = info['Lattitude']
         long = info['Longtitude']
-        bed = info['Bedroom2']
+        bed = info['Bedroom']
         bath = info['Bathroom']
         car = info['Car']
-        year = info['YearBuilt']
-        size = info['Landsize']
+        kind = info['Type']
         filename = 'finalized_model.sav'
         loaded_model = pickle.load(open(filename, 'rb'))
 
-        result = int(loaded_model.predict([[room, kind, lat, long, bed, bath, car, year, size]])[0])
+        result = int(loaded_model.predict([[lat, long, bed, bath, car, kind]])[0])
         index = df.Price.count()
         # Put the values into the dataframe
         for key in info:
@@ -393,4 +387,11 @@ if __name__ == '__main__':
     df2 = df2[['School_No', 'Education_Sector', 'School_Name', 'School_Type', 'Postal_Town', 'X', 'Y']]
     print(df2['School_Type'].unique())
     df_record = pd.read_csv("record.csv")
+    df_crime = pd.read_csv("crime_rate.csv")
+    df_crime = df_crime[['Postcode', 'Suburb/Town Name', 'Incidents Recorded']]
+    df_crime['Incidents Recorded'] = df_crime['Incidents Recorded'].replace('["",]*', '', regex=True)
+    df_crime['Incidents Recorded'] = df_crime['Incidents Recorded'].astype(int)
+    df_crime['Incidents Recorded'] = df_crime['Incidents Recorded']/10
+    df_crime = df_crime.groupby('Postcode')['Incidents Recorded'].apply(lambda x: x.sum())
+    print(df_crime.head())
     app.run(debug=True)
