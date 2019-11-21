@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    {% for i in items %}
+        <p>{{i["School_Name"]}}</p>
+    {% endfor %}
+<div>
+      {% for index in range(pages) %}
+        <a href="{{ url_for('schoolPage', page_id=index+1) }}">{{index+1}}</a>
+        {%endfor%}
+</div>
+</body>
+</html>

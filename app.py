@@ -43,28 +43,49 @@ def register():
             return render_template("home.html")
         else:
             return render_template('register.html')
-
-
     return render_template('register.html')
 
-@app.route('/school', methods=['POST', 'GET'])
+
+@app.route('/school/', methods=['POST', 'GET'])
 def school():
     if request.method == "POST":
         distance = request.form["distance"]
         ascending = request.form["ascending"]
         latitude = request.form["latitude"]
         longitude = request.form["longitude"]
+        edu_type = request.form["edu_type"]
+        school_type = request.form["school_type"]
         ascending = str_to_bool(ascending)
-        
-        r = requests.get("http://127.0.0.1:5000/findschool_with_dist?distance={}&ascending={}&latitude={}&longitude={}".format(distance, ascending,latitude,longitude))
-        
-        print(r)
+
+        r = requests.get("http://127.0.0.1:5000/schools?latitude={}&longitude={}&distance={}&"
+                         "pageNumber=1&pageSize=10&education_type={}&school_type={}&ascending={}"
+                         .format(latitude,longitude,distance, edu_type, school_type, ascending))
+
+        page_num = r.json()["data"]["totalPageNum"]
+        items = r.json()["data"]["schoolList"]
+        curr_page = r.json()["data"]["curPageNum"]
+        print(page_num)
         if r.status_code == 200:
-            return render_template("home.html")
+            return render_template("schoolPage.html", pages=page_num, curr=curr_page, items=items, dis=distance
+                                   , asc=ascending, lat=latitude, log=longitude, edu=edu_type, school=school_type)
         else:
             return render_template('school.html')
       
     return render_template('school.html')
+#
+@app.route('/schoolPage/<page_id>/<lat>/<log>/<dis>/<edu>/<school>/<asc>', methods=['POST', 'GET'])
+def schoolPage(page_id,lat,log,dis,edu,school,asc):
+    r = requests.get("http://127.0.0.1:5000/schools?latitude={}&longitude={}&distance={}&"
+                     "pageNumber={}&pageSize=10&education_type={}&school_type={}&ascending={}"
+                     .format(lat, log, dis, page_id, edu, school, asc))
+    page_num = r.json()["data"]["totalPageNum"]
+    items = r.json()["data"]["schoolList"]
+    curr_page = r.json()["data"]["curPageNum"]
+    if r.status_code == 200:
+        return render_template("schoolPage.html", pages=page_num, curr=curr_page, items=items, dis=dis
+                                   , asc=asc, lat=lat, log=log, edu=edu, school=school)
+    else:
+        return render_template('school.html')
 
 
 def str_to_bool(input):

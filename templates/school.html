@@ -5,11 +5,10 @@
     <title>school</title>
 </head>
 <body>
-    <style>
-		input { border: 1px solid black }
-	</style>
-	<form method = "POST">
+
+	<form method = "POST" target="id_iframe">
 	    <h2>
+
 	        <p style="text-align: center">
 				<div class = "login_style">
 					Distance:<br>  <input type="text" name="distance" > <br>
@@ -17,14 +16,20 @@
 					  <option value ="Ascending">Ascending</option>
 					  <option value ="Dscending">Dscending</option>
 					</select> <br>
-					Latitude:<br>  <input type="Latitude" name="latitude" > <br>
-					Longitude:<br>  <input type="Longitude" name="longitude"> <br> 
+					Latitude:<br>  <input type=text id="latitude" name="latitude"> <br>
+					Longitude:<br>  <input type=text name="longitude"> <br>
+					Edu_Type:<br>  <input type=text name="edu_type" > <br>
+					School_Type:<br>  <input type=text name="school_type"> <br>
 					<button>search</button>
 				</div>
 	        </p>
 	    </h2>
 	</form>
+
+
 </body>
+
+
 
 <script>
  var flag = true;
