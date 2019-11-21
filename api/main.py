@@ -98,15 +98,12 @@ def requires_auth(f):
 
 # The following is the schema of Book
 property_model = api.model('Property', {
-    'Rooms': fields.Integer,
-    'Type': fields.Integer,
     'Lattitude': fields.Float,
     'Longtitude': fields.Float,
-    'Bedroom2': fields.Integer,
+    'Bedroom': fields.Integer,
     'Bathroom': fields.Integer,
     'Car': fields.Integer,
-    'YearBuilt': fields.Integer,
-    'Landsize': fields.Float
+    'Type': fields.Integer
 })
 
 parser = reqparse.RequestParser()
@@ -133,18 +130,8 @@ credential_parser = reqparse.RequestParser()
 credential_parser.add_argument('username', type=str)
 credential_parser.add_argument('password', type=str)
 
-position_model = api.model('position', {
-    'X': fields.Float,
-    'Y': fields.Float
-})
 
-pos_parser = reqparse.RequestParser()
-pos_parser.add_argument('distance', type=int)
-pos_parser.add_argument('ascending', type=bool)
-pos_parser.add_argument('latitude', type=float)
-pos_parser.add_argument('longitude', type=float)
-
-school_model = api.model('position', {
+school_model = api.model('School', {
     'X': fields.Float,
     'Y': fields.Float,
     'Education_Sector': fields.String,
@@ -152,10 +139,14 @@ school_model = api.model('position', {
     'School_Type': fields.String,
     'Postal_Town': fields.String
 })
+
 school_parser = reqparse.RequestParser()
+school_parser.add_argument('latitude', type=float)
+school_parser.add_argument('longitude', type=float)
+school_parser.add_argument('distance', type=int)
 school_parser.add_argument('pageNumber', type=int)
 school_parser.add_argument('pageSize', type=int)
-# parser.add_argument('distance', type=int)
+
 school_parser.add_argument('education_type', choices=['Government', 'Independent', 'Catholic', 'Any'])
 school_parser.add_argument('school_type', choices=['Primary', 'Pri/Sec', 'Special', 'Secondary', 'Language', 'Any'])
 school_parser.add_argument('ascending', type=inputs.boolean)
@@ -190,8 +181,8 @@ class AdminCheck(Resource):
         return {"message": "The number of api calls for {} is {}.".format(api_type, count)}, 200
 
 
-@api.route('/login')
-class Login(Resource):
+@api.route('/token')
+class Token(Resource):
     @api.response(200, 'Successful')
     @api.response(401, 'Fail')
     @api.doc(description="Log a user into the system")
@@ -246,26 +237,23 @@ class Predict(Resource):
     @api.response(400, 'Missing Information')
     @api.doc(description="Predict price of a real estate")
     @api.expect(property_model, validate=True)
-    @requires_auth
+    # @requires_auth
     def post(self):
         info = request.json
         print(len(info.keys()))
-        if len(info.keys()) < 9:
+        if len(info.keys()) < 6:
             return {"message": "Missing Information for Prediction"}, 400
 
-        room = info['Rooms']
-        kind = info['Type']
         lat = info['Lattitude']
         long = info['Longtitude']
-        bed = info['Bedroom2']
+        bed = info['Bedroom']
         bath = info['Bathroom']
         car = info['Car']
-        year = info['YearBuilt']
-        size = info['Landsize']
+        kind = info['Type']
         filename = 'finalized_model.sav'
         loaded_model = pickle.load(open(filename, 'rb'))
 
-        result = int(loaded_model.predict([[room, kind, lat, long, bed, bath, car, year, size]])[0])
+        result = int(loaded_model.predict([[lat, long, bed, bath, car, kind]])[0])
         index = df.Price.count()
         # Put the values into the dataframe
         for key in info:
@@ -279,45 +267,10 @@ class Predict(Resource):
         return {"message": "The predicted price for this housing property is ${}.".format(result)}, 200
 
 
-@api.route('/findschool_with_dist')
-class FindSchoolDistance(Resource):
+@api.route('/schools')
+class SchoolList(Resource):
     @api.response(200, 'Successful')
-    # @api.response(400, 'Missing Information')
-    @api.doc(description="Return a list of school within a distance range")
-    @api.expect(pos_parser, validate=True)
-    # @requires_auth
-    def get(self):
-        # info = request.json
-
-        args = pos_parser.parse_args()
-        ascending = args.get('ascending', True)
-        distance = args.get('distance')
-        latitude = args.get('latitude')
-        longitude = args.get('longitude')
-        df_dist = df2
-        for index, row in df_dist.iterrows():
-            df_dist.loc[index, "distance"] = get_distance(row["X"], row["Y"], latitude, longitude)
-
-        print(df_dist["distance"].head())
-        df_filtered = df_dist[df_dist["distance"] < distance]
-        df_filtered.sort_values(by="distance", inplace=True, ascending=ascending)
-
-        json_str = df_filtered.to_json(orient='index')
-
-        # convert the string JSON to a real JSON
-        ds = json.loads(json_str)
-        ret = []
-
-        for idx in ds:
-            school = ds[idx]
-            ret.append(school)
-
-        return ret
-#
-@api.route('/school')
-class School(Resource):
-    @api.response(200, 'Successful')
-    @api.response(400, 'Fail to return')
+    @api.response(404, 'Fail to return')
     @api.doc(description="Return a list of school with pagination")
     @api.expect(school_parser, validate=True)
     # @requires_auth
@@ -328,11 +281,17 @@ class School(Resource):
         school_type = args.get('school_type')
         education_type = args.get('education_type')
         ascending = args.get('ascending', True)
+        distance = args.get('distance')
+        latitude = args.get('latitude')
+        longitude = args.get('longitude')
         df_filtered = df2
         if school_type != 'Any':
             df_filtered = df2[df2["School_Type"] == school_type]
         if education_type != 'Any':
             df_filtered = df_filtered[df_filtered['Education_Sector'] == education_type]
+        for index, row in df_filtered.iterrows():
+            df_filtered.loc[index, "distance"] = get_distance(row["X"], row["Y"], latitude, longitude)
+        df_filtered = df_filtered[df_filtered["distance"] < distance]
         count = df_filtered["School_Name"].count()
         df_filtered.sort_values(by="School_Name", inplace=True, ascending=ascending)
         if count == 0:
@@ -343,7 +302,7 @@ class School(Resource):
                 totalPage += 1
 
             skipNumber = pageSize * (pageNumber - 1)
-            endNumber = skipNumber+pageSize-1
+            endNumber = skipNumber+pageSize
             if endNumber >= count:
                 endNumber = count - 1
             df_paged = df_filtered[skipNumber:endNumber]
@@ -376,6 +335,26 @@ class School(Resource):
         df_record.to_csv("record.csv")
         return jsonify(respdict)
 
+    @api.response(201, 'Successful')
+    @api.response(400, 'Fail to add a school')
+    @api.doc(description="Add a new school to the list")
+    @api.expect(school_model, validate=True)
+    # @requires_auth
+    def post(self):
+        school = request.json
+        if 'School_Name' not in school:
+            return {"message": "Missing Name of School"}, 400
+        name = school['School_Name']
+        if name in df2.School_Name:
+            return {"message": "A school with Name={} already exists".format(name)}, 400
+        index = df2.School_Name.count()
+        for key in school:
+            if key not in school_model.keys():
+                return {"message": "Property {} is invalid".format(key)}, 400
+            df2.loc[index, key] = school[key]
+
+        print(df2.tail(5))
+        return {"message": "School {} is created".format(name)}, 201
 
 #
 #     @api.response(200, 'Successful')
@@ -391,6 +370,18 @@ if __name__ == '__main__':
     df1 = pd.read_csv("User.csv")
     df2 = pd.read_csv("schoollocations2019.csv")
     df2 = df2[['School_No', 'Education_Sector', 'School_Name', 'School_Type', 'Postal_Town', 'X', 'Y']]
-    print(df2['School_Type'].unique())
+    # print(df2['School_Type'].unique())
     df_record = pd.read_csv("record.csv")
+    df_crime = pd.read_csv("crime_rate.csv")
+    df_crime = df_crime[['Postcode', 'Suburb/Town Name', 'Incidents Recorded']]
+    df_crime['Incidents Recorded'] = df_crime['Incidents Recorded'].replace('["",]*', '', regex=True)
+    df_crime['Incidents Recorded'] = df_crime['Incidents Recorded'].astype(int)
+    df_crime['Incidents Recorded'] = df_crime['Incidents Recorded']/10
+    df_crime['Incidents Recorded'] = df_crime['Incidents Recorded'].astype(int)
+    df_crime = df_crime.groupby('Postcode')['Incidents Recorded'].apply(lambda x: x.sum())
+    df_property = pd.read_csv("vic_property.csv")
+    df_property = df_property[["postcode", "suburb", "latitude", "longitude", "bedrooms", "bathrooms", "parkingSpaces",
+                               "propertyType", "price"]]
+    df_crime = pd.merge(df_crime, df_property, left_on='Postcode', right_on='postcode')
+    print(df_crime.head())
     app.run(debug=True)
