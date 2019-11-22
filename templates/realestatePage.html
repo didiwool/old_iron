@@ -8,11 +8,11 @@
 <div>
 	{%if pages is defined%}
     {% for i in items %}
-        <p>{{i["lot_id"]}}</p>
+    <a href="{{ url_for('propertyInfo', id=i['listingId'], token=token) }}">{{i["listingId"]}}</a>
     {% endfor %}
-
+<br/>
       {% for index in range(pages) %}
-        <a href="{{ url_for('realestatePage', page_id=index+1, lat=lat, log=log, dis=dis, type=type, bed=bed, bath=bath, car=car, asc=asc) }}">{{index+1}}</a>
+        <a href="{{ url_for('realestatePage', page_id=index+1, lat=lat, log=log, dis=dis, type=type, bed=bed, bath=bath, car=car, asc=asc, token=token) }}">{{index+1}}</a>
         {%endfor%}
 	{%endif%}
 </div>

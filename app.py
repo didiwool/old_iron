@@ -69,10 +69,10 @@ def predict(token):
 @app.route('/school/<token>', methods=['POST', 'GET'])
 def school(token):
     if request.method == "POST":
-        distance = request.form["distance"]
+        distance = int(request.form["distance"])
         ascending = request.form["ascending"]
-        latitude = request.form["latitude"]
-        longitude = request.form["longitude"]
+        latitude = float(request.form["latitude"])
+        longitude = float(request.form["longitude"])
         edu_type = request.form["edu_type"]
         school_type = request.form["school_type"]
         ascending = str_to_bool(ascending)
@@ -109,6 +109,69 @@ def schoolPage(page_id,lat,log,dis,edu,school,asc,token):
                                    , asc=asc, lat=lat, log=log, edu=edu, school=school, token=token)
     else:
         return render_template('school.html')
+
+
+@app.route('/realestate/<token>', methods=['POST', 'GET'])
+def realestate(token):
+    if request.method == "POST":
+        distance = int(request.form["distance"])
+        ascending = request.form["ascending"]
+        latitude = float(request.form["latitude"])
+        longitude = float(request.form["longitude"])
+        bedroom = int(request.form["bedroom"])
+        bathroom = int(request.form["bathroom"])
+        carspace = int(request.form["carspace"])
+        type = request.form["Type"]
+        ascending = str_to_bool(ascending)
+        headers = {'AUTH_TOKEN': token}
+        r = requests.get("http://127.0.0.1:5000/properties?latitude={}&longitude={}"
+                         "&distance={}&pageNumber=1&pageSize=10&bedrooms={}&bathrooms={}&Parking={}&ascending={}&property_type={}"
+                         .format(latitude, longitude, distance, bedroom, bathroom,carspace, ascending, type), headers=headers)
+
+        page_num = r.json()["data"]["totalPageNum"]
+        items = r.json()["data"]["propertyList"]
+        curr_page = r.json()["data"]["curPageNum"]
+        print(page_num)
+        if r.status_code == 200:
+            return render_template("realestatePage.html", pages=page_num, curr=curr_page, items=items, dis=distance
+                                   , asc=ascending, lat=latitude, log=longitude, bed=bedroom, bath=bathroom,
+                                   car=carspace, type=type, token=token)
+        else:
+            return render_template('Realestate.html')
+
+    return render_template('Realestate.html')
+
+
+@app.route('/realestatePage/<page_id>/<lat>/<log>/<dis>/<bed>/<bath>/<car>/<type>/<asc>/<token>', methods=['POST', 'GET'])
+def realestatePage(page_id, lat, log, dis, bed, bath, car, type, asc, token):
+    headers = {'AUTH_TOKEN': token}
+    r = requests.get("http://127.0.0.1:5000/properties?latitude={}&longitude={}"
+                         "&distance={}&pageNumber={}&pageSize=10&bedrooms={}&bathrooms={}&Parking={}&ascending={}&property_type={}"
+                     .format(lat, log, dis, page_id, bed, bath, car, asc, type), headers=headers)
+
+    page_num = r.json()["data"]["totalPageNum"]
+    items = r.json()["data"]["propertyList"]
+    curr_page = r.json()["data"]["curPageNum"]
+    if r.status_code == 200:
+        return render_template("realestatePage.html", pages=page_num, curr=curr_page, items=items, dis=dis
+                               , asc=asc, lat=lat, log=log, bed=bed, bath=bath, car=car, type=type, token=token)
+    else:
+        return render_template('Realestate.html')
+
+
+@app.route('/propertyInfo/<id>/<token>', methods=['POST', 'GET'])
+def propertyInfo(id, token):
+
+    headers = {'AUTH_TOKEN': token}
+    r = requests.get("http://127.0.0.1:5000/property/{}"
+                     .format(int(id)), headers=headers)
+
+    item = r.json()[0]
+
+    if r.status_code == 200:
+        return render_template("propertyInfo.html", item=item)
+    else:
+        return render_template('home.html')
 
 
 def str_to_bool(input):

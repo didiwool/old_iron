@@ -2,6 +2,8 @@ import datetime
 import json
 from functools import wraps
 from time import time
+
+import numpy
 import pandas as pd
 from flask import Flask
 from flask import request
@@ -24,8 +26,8 @@ def get_distance(x1, y1, x2, y2):
     x2 = radians(x2)
     y2 = radians(y2)
 
-    dlon = y2 - y1
-    dlat = x2 - x1
+    dlon = x2 - x1
+    dlat = y2 - y1
 
     a = sin(dlat / 2) ** 2 + cos(x1) * cos(x2) * sin(dlon / 2) ** 2
     c = 2 * atan2(sqrt(a), sqrt(1 - a))
@@ -71,9 +73,9 @@ api = Api(app, authorizations={
                 }
             },
           security='API-KEY',
-          default="Books",  # Default namespace
-          title="Book Dataset",  # Documentation Title
-          description="This is just a simple example to show how publish data as a service.")  # Documentation Description
+          default="Housing Property",
+          title="Housing Property",
+          description="Using the location to predict housing price and to recommend house property and schools near you.")
 
 
 def requires_auth(f):
@@ -96,8 +98,8 @@ def requires_auth(f):
     return decorated
 
 
-# The following is the schema of Book
-property_model = api.model('Property', {
+#The following is the schema of Book
+property_1_model = api.model('Property', {
     'Lattitude': fields.Float,
     'Longtitude': fields.Float,
     'Bedroom': fields.Integer,
@@ -118,7 +120,6 @@ parser.add_argument('Bedroom2', type=int)
 parser.add_argument('Bathroom', type=int)
 parser.add_argument('Car', type=int)
 parser.add_argument('YearBuilt', type=int)
-parser.add_argument('Landsize', type=float)
 
 credential_model = api.model('credential', {
     'username': fields.String,
@@ -236,8 +237,8 @@ class Predict(Resource):
     @api.response(200, 'Successful')
     @api.response(400, 'Missing Information')
     @api.doc(description="Predict price of a real estate")
-    @api.expect(property_model, validate=True)
-    # @requires_auth
+    @api.expect(property_1_model, validate=True)
+    @requires_auth
     def post(self):
         info = request.json
         print(len(info.keys()))
@@ -273,7 +274,7 @@ class SchoolList(Resource):
     @api.response(404, 'Fail to return')
     @api.doc(description="Return a list of school with pagination")
     @api.expect(school_parser, validate=True)
-    # @requires_auth
+    @requires_auth
     def get(self):
         args = school_parser.parse_args()
         pageNumber = args["pageNumber"]
@@ -290,10 +291,10 @@ class SchoolList(Resource):
         if education_type != 'Any':
             df_filtered = df_filtered[df_filtered['Education_Sector'] == education_type]
         for index, row in df_filtered.iterrows():
-            df_filtered.loc[index, "distance"] = get_distance(row["X"], row["Y"], latitude, longitude)
+            df_filtered.loc[index, "distance"] = get_distance(row["Y"], row["X"], latitude, longitude)
         df_filtered = df_filtered[df_filtered["distance"] < distance]
         count = df_filtered["School_Name"].count()
-        df_filtered.sort_values(by="School_Name", inplace=True, ascending=ascending)
+        df_filtered.sort_values(by="distance", inplace=True, ascending=ascending)
         if count == 0:
             respData = {}
         else:
@@ -339,7 +340,7 @@ class SchoolList(Resource):
     @api.response(400, 'Fail to add a school')
     @api.doc(description="Add a new school to the list")
     @api.expect(school_model, validate=True)
-    # @requires_auth
+    @requires_auth
     def post(self):
         school = request.json
         if 'School_Name' not in school:
@@ -362,6 +363,151 @@ class SchoolList(Resource):
 #     @api.doc(description="Return a list of school within a distance range")
 #     @api.expect(position_model, validate=True)
 #     def post(self):
+property_model = api.model('Property', {
+    'latitude': fields.Float,
+    'longitude': fields.Float,
+    'distance': fields.Float,
+    'bedrooms': fields.Integer,
+    'bathroom': fields.Integer,
+    'Parking': fields.Integer
+})
+
+house_search = reqparse.RequestParser()
+house_search.add_argument('latitude', type=float)
+house_search.add_argument('longitude', type=float)
+house_search.add_argument('distance', type=int)
+house_search.add_argument('pageNumber', type=int)
+house_search.add_argument('pageSize', type=int)
+house_search.add_argument('bedrooms', type=int)
+house_search.add_argument('bathrooms', type=int)
+house_search.add_argument('Parking', type=int)
+house_search.add_argument('ascending', type=inputs.boolean)
+house_search.add_argument('property_type', choices=['house', 'apartment', 'unit', 'townhouse', 'Any'])
+
+
+@api.route('/properties')
+class HouseList(Resource):
+    @api.response(200, 'Successful')
+    @api.response(404, 'Fail to return')
+    @api.doc(description="Return a list of properties with pagination")
+    @api.expect(house_search, validate=True)
+    @requires_auth
+    def get(self):
+        args = house_search.parse_args()
+        pageNumber = args["pageNumber"]
+        pageSize = args["pageSize"]
+        property_type = args.get('property_type')
+        ascending = args.get('ascending', True)
+        distance = args.get('distance')
+        bedrooms = args.get('bedrooms')
+        bathrooms = args.get('bathrooms')
+        parking = args.get('Parking')
+        latitude = args.get('latitude')
+        longitude = args.get('longitude')
+        df_filtered = df_property
+        if property_type != 'Any':
+            df_filtered = df_property[df_property["propertyType"] == property_type]
+        df_filtered = df_filtered[df_filtered["bedrooms"] == bedrooms]
+        df_filtered = df_filtered[df_filtered["bathrooms"] == bathrooms]
+        df_filtered = df_filtered[df_filtered["parkingSpaces"] == parking]
+        for index, row in df_filtered.iterrows():
+            df_filtered.loc[index, "distance"] = get_distance(row["latitude"], row["longitude"], latitude, longitude)
+        df_filtered = df_filtered[df_filtered["distance"] < distance]
+        count = df_filtered.latitude.count()
+        df_filtered.sort_values(by="distance", inplace=True, ascending=ascending)
+        if count == 0:
+            respData = {}
+        else:
+            totalPage = int(count / pageSize)
+            if (count % pageSize) > 0:
+                totalPage += 1
+
+            skipNumber = pageSize * (pageNumber - 1)
+            endNumber = skipNumber+pageSize
+            if endNumber >= count:
+                endNumber = count - 1
+            df_paged = df_filtered[skipNumber:endNumber]
+            json_str = df_paged.to_json(orient='index')
+            ds = json.loads(json_str)
+            ret = []
+            for idx in ds:
+                property = ds[idx]
+                ret.append(property)
+
+            hasPrev = False
+            if pageNumber > 1:
+                hasPrev = True
+            hasNext = False
+            if pageNumber < totalPage:
+                hasNext = True
+            respData = {
+                "propertyList": ret,
+                "curPageNum": pageNumber,
+                "numPerPage": pageSize,
+                "totalNum": int(count),
+                "totalPageNum": totalPage,
+                "hasPrev": hasPrev,
+                "hasNext": hasNext,
+            }
+        respdict = {"code": 200, "message": "Get question ok", "data": respData}
+        num = df_record["time"].count()
+        df_record.loc[num, "call_name"] = "property_list"
+        df_record.loc[num, "time"] = datetime.datetime.now()
+        df_record.to_csv("record.csv")
+        return jsonify(respdict)
+
+    @api.response(201, 'Successful')
+    @api.response(400, 'Fail to add a property')
+    @api.doc(description="Add a new property to the list")
+    @api.expect(property_model, validate=True)
+    @requires_auth
+    def post(self):
+        property = request.json
+        listingId = property['listingId']
+        if listingId in df_property.listingId:
+            return {"message": "A property with listingID={} already exists".format(listingId)}, 400
+        index = df_property.listingId.count()
+        for key in property:
+            if key not in property_model.keys():
+                return {"message": "Property {} is invalid".format(key)}, 400
+            df_property.loc[index, key] = property[key]
+
+        return {"message": "Property {} is created".format(listingId)}, 201
+
+
+@api.route('/property/<int:id>')
+@api.param('id', 'The Property identifier')
+class Property(Resource):
+    @api.response(404, 'Property was not found')
+    @api.response(200, 'Successful')
+    @api.doc(description="Get a property by its identifier")
+    @requires_auth
+    def get(self, id):
+
+        df_return = df_property[df_property["listingId"] == id]
+        if df_return["listingId"].count() == 0:
+            api.abort(404, "Property {} doesn't exist".format(id))
+
+        json_str = df_return.to_json(orient="index")
+        ds = json.loads(json_str)
+        ret = []
+
+        for idx in ds:
+            property = ds[idx]
+            ret.append(property)
+
+        return ret
+    # @api.response(404, 'Property was not found')
+    # @api.response(200, 'Successful')
+    # @api.doc(description="Delete a property by its ID")
+    # @requires_auth
+    # def delete(self, id):
+    #     if id not in df.index:
+    #         api.abort(404, "Book {} doesn't exist".format(id))
+    #
+    #     df.drop(id, inplace=True)
+    #     return {"message": "Book {} is removed.".format(id)}, 200
+
 
 
 if __name__ == '__main__':
@@ -372,16 +518,18 @@ if __name__ == '__main__':
     df2 = df2[['School_No', 'Education_Sector', 'School_Name', 'School_Type', 'Postal_Town', 'X', 'Y']]
     # print(df2['School_Type'].unique())
     df_record = pd.read_csv("record.csv")
-    df_crime = pd.read_csv("crime_rate.csv")
-    df_crime = df_crime[['Postcode', 'Suburb/Town Name', 'Incidents Recorded']]
-    df_crime['Incidents Recorded'] = df_crime['Incidents Recorded'].replace('["",]*', '', regex=True)
-    df_crime['Incidents Recorded'] = df_crime['Incidents Recorded'].astype(int)
-    df_crime['Incidents Recorded'] = df_crime['Incidents Recorded']/10
-    df_crime['Incidents Recorded'] = df_crime['Incidents Recorded'].astype(int)
-    df_crime = df_crime.groupby('Postcode')['Incidents Recorded'].apply(lambda x: x.sum())
+    #df_crime = pd.read_csv("crime_rate.csv")
+    #df_crime = df_crime[['Postcode', 'Suburb/Town Name', 'Incidents Recorded']]
+    #df_crime['Incidents Recorded'] = df_crime['Incidents Recorded'].replace('["",]*', '', regex=True)
+    #df_crime['Incidents Recorded'] = df_crime['Incidents Recorded'].astype(int)
+    #df_crime['Incidents Recorded'] = df_crime['Incidents Recorded']/10
+    #df_crime['Incidents Recorded'] = df_crime['Incidents Recorded'].astype(int)
+    #df_crime = df_crime.groupby('Postcode')['Incidents Recorded'].apply(lambda x: x.sum())
     df_property = pd.read_csv("vic_property.csv")
-    df_property = df_property[["postcode", "suburb", "latitude", "longitude", "bedrooms", "bathrooms", "parkingSpaces",
-                               "propertyType", "price"]]
-    df_crime = pd.merge(df_crime, df_property, left_on='Postcode', right_on='postcode')
-    print(df_crime.head())
+    # df_property.set_index("listingId", inplace=True)
+    print(df_property.dtypes)
+    #df_property = df_property[["postcode", "suburb", "latitude", "longitude", "bedrooms", "bathrooms", "parkingSpaces",
+                               #"propertyType", "price"]]
+    #print(df_crime.head())
     app.run(debug=True)
+
