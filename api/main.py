@@ -476,16 +476,18 @@ class Property(Resource):
         df_record.loc[num, "time"] = datetime.datetime.now()
         df_record.to_csv("record.csv")
         return ret
-    # @api.response(404, 'Property was not found')
-    # @api.response(200, 'Successful')
-    # @api.doc(description="Delete a property by its ID")
-    # @requires_auth
-    # def delete(self, id):
-    #     if id not in df.index:
-    #         api.abort(404, "Book {} doesn't exist".format(id))
-    #
-    #     df.drop(id, inplace=True)
-    #     return {"message": "Book {} is removed.".format(id)}, 200
+
+    @api.response(404, 'Property was not found')
+    @api.response(200, 'Successful')
+    @api.doc(description="Delete a property by its ID")
+    @requires_auth
+    def delete(self, id):
+        df_return = df_property[df_property["listingId"] == id]
+        if df_return["listingId"].count() == 0:
+            api.abort(404, "Property {} doesn't exist".format(id))
+        delete_row = df_property[df_property["listingId"] == id].index
+        df_property.drop(delete_row, inplace=True)
+        return {"message": "Property {} is removed.".format(id)}, 200
 
 
 
