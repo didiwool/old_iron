@@ -5,6 +5,7 @@
     <title>Title</title>
 </head>
 <body>
+<a  href="{{ url_for('homepage') }}">Back to login</a>
 <p>Welcome</p>
 <a href="{{ url_for('school', token=token) }}">Find School Near Your</a>
 <a href="{{ url_for('predict', token=token) }}">Predict the Price</a>
