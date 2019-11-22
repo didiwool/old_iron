@@ -48,24 +48,32 @@ def register():
 @app.route('/predict',methods=['POST', 'GET'])
 def predict():
     if request.method == "POST":
-        distance = request.form["distance"]
-        ascending = request.form["ascending"]
+        #distance = request.form["distance"]
+        #ascending = request.form["ascending"]
         latitude = request.form["latitude"]
         longitude = request.form["longitude"]
         Type = request.form["Type"]
         bedroom = request.form["bedroom"]
         bathroom = request.form["bathroom"]
         carspace = request.form["carspace"]
-        ascending = str_to_bool(ascending)
+        #ascending = str_to_bool(ascending)
 
-        print(distance)
-        print(ascending)
+       # print(distance)
+        #print(ascending)
         print(latitude)
         print(longitude)
         print(Type)
         print(bedroom)
         print(bathroom)
         print(carspace)
+
+        headers = {'content-type': "application/json"}
+        s = json.dumps({'latitude': latitude, 'longitude': longitude,'Type': Type,'bedroom': bedroom,'bathroom': bathroom,'carspace': carspace})
+        r = requests.post("http://127.0.0.1:5000/predict", headers=headers, data=s)
+        if r.status_code == 201:
+            return render_template("home.html")
+        else:
+            return render_template('predict.html')
 
     return render_template('predict.html')
 
