@@ -28,7 +28,8 @@
 	        </p>
 	    </h2>
 	</form>
-
-
+	{%if message is defined%}
+	<p>{{message}}</p>
+	{%endif%}
 </body>
 </html>

@@ -5,12 +5,15 @@ import pandas as pd
 from flask import Flask
 from flask import request, render_template, flash, redirect, url_for
 import requests
+from requests.auth import HTTPBasicAuth
 
 app = Flask(__name__)
+
 
 @app.route('/', methods=['POST', 'GET'])
 def homepage():
     return render_template('homepage.html')
+
 
 @app.route('/login', methods=['POST', 'GET'])
 def login():
@@ -18,68 +21,53 @@ def login():
         username = request.form["username"]
         password = request.form["password"]
         print(type(username), type(password))
-        r = requests.post("http://127.0.0.1:5000/login?username={}&password={}".format(username, password))
+        r = requests.post("http://127.0.0.1:5000/token?username={}&password={}".format(username, password))
         print(r)
         if r.status_code == 200:
             token = r.json()["token"]
             print("sucesdsdfkdfs")
-            return render_template("home.html")
+            return render_template("home.html", token=token)
         else:
             return render_template('login.html')
     return render_template('login.html')
 
 
-@app.route('/register', methods=['POST', 'GET'])
-def register():
-    if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
-        usertype = 1
-
-        headers = {'content-type': "application/json"}
-        s = json.dumps({'username': username, 'password': password,'usertype': usertype})
-        r = requests.post("http://127.0.0.1:5000/register", headers=headers, data=s)
-        if r.status_code == 201:
-            return render_template("home.html")
-        else:
-            return render_template('register.html')
-    return render_template('register.html')
-
-@app.route('/predict',methods=['POST', 'GET'])
-def predict():
+@app.route('/predict/<token>',methods=['POST', 'GET'])
+def predict(token):
     if request.method == "POST":
         #distance = request.form["distance"]
         #ascending = request.form["ascending"]
-        latitude = request.form["latitude"]
-        longitude = request.form["longitude"]
-        Type = request.form["Type"]
-        bedroom = request.form["bedroom"]
-        bathroom = request.form["bathroom"]
-        carspace = request.form["carspace"]
+        latitude = float(request.form["latitude"])
+        longitude = float(request.form["longitude"])
+        type = request.form["Type"]
+        bedroom = int(request.form["bedroom"])
+        bathroom = int(request.form["bathroom"])
+        carspace = int(request.form["carspace"])
         #ascending = str_to_bool(ascending)
 
-       # print(distance)
-        #print(ascending)
-        print(latitude)
-        print(longitude)
-        print(Type)
-        print(bedroom)
-        print(bathroom)
-        print(carspace)
-
-        headers = {'content-type': "application/json"}
-        s = json.dumps({'latitude': latitude, 'longitude': longitude,'Type': Type,'bedroom': bedroom,'bathroom': bathroom,'carspace': carspace})
+        if type == "House":
+            type = 0
+        elif type == "Apartment":
+            type = 1
+        elif type == "Unit":
+            type = 2
+        elif type == "Townhouse":
+            type = 3
+        headers = {'content-type': "application/json",
+                   'AUTH_TOKEN': token}
+        s = json.dumps({'Lattitude': latitude, 'Longtitude': longitude,'Type': type,'Bedroom': bedroom,'Bathroom': bathroom,'Car': carspace})
         r = requests.post("http://127.0.0.1:5000/predict", headers=headers, data=s)
-        if r.status_code == 201:
-            return render_template("home.html")
+        print(r.json())
+        if r.status_code == 200:
+            return render_template("predict.html", message=r.json()["message"])
         else:
-            return render_template('predict.html')
+            return render_template('predict.html', message=r.json()["message"])
 
     return render_template('predict.html')
 
 
-@app.route('/school/', methods=['POST', 'GET'])
-def school():
+@app.route('/school/<token>', methods=['POST', 'GET'])
+def school(token):
     if request.method == "POST":
         distance = request.form["distance"]
         ascending = request.form["ascending"]
@@ -88,10 +76,10 @@ def school():
         edu_type = request.form["edu_type"]
         school_type = request.form["school_type"]
         ascending = str_to_bool(ascending)
-
+        headers = {'AUTH_TOKEN': token}
         r = requests.get("http://127.0.0.1:5000/schools?latitude={}&longitude={}&distance={}&"
                          "pageNumber=1&pageSize=10&education_type={}&school_type={}&ascending={}"
-                         .format(latitude,longitude,distance, edu_type, school_type, ascending))
+                         .format(latitude,longitude,distance, edu_type, school_type, ascending), headers=headers)
 
         page_num = r.json()["data"]["totalPageNum"]
         items = r.json()["data"]["schoolList"]
@@ -99,27 +87,28 @@ def school():
         print(page_num)
         if r.status_code == 200:
             return render_template("schoolPage.html", pages=page_num, curr=curr_page, items=items, dis=distance
-                                   , asc=ascending, lat=latitude, log=longitude, edu=edu_type, school=school_type)
+                                   , asc=ascending, lat=latitude, log=longitude, edu=edu_type, school=school_type, token=token)
         else:
             return render_template('school.html')
       
     return render_template('school.html')
-#
-@app.route('/schoolPage/<page_id>/<lat>/<log>/<dis>/<edu>/<school>/<asc>', methods=['POST', 'GET'])
-def schoolPage(page_id,lat,log,dis,edu,school,asc):
+
+
+@app.route('/schoolPage/<page_id>/<lat>/<log>/<dis>/<edu>/<school>/<asc>/<token>', methods=['POST', 'GET'])
+def schoolPage(page_id,lat,log,dis,edu,school,asc,token):
+    headers = {'AUTH_TOKEN': token}
     r = requests.get("http://127.0.0.1:5000/schools?latitude={}&longitude={}&distance={}&"
                      "pageNumber={}&pageSize=10&education_type={}&school_type={}&ascending={}"
-                     .format(lat, log, dis, page_id, edu, school, asc))
+                     .format(lat, log, dis, page_id, edu, school, asc), headers=headers)
+
     page_num = r.json()["data"]["totalPageNum"]
     items = r.json()["data"]["schoolList"]
     curr_page = r.json()["data"]["curPageNum"]
     if r.status_code == 200:
         return render_template("schoolPage.html", pages=page_num, curr=curr_page, items=items, dis=dis
-                                   , asc=asc, lat=lat, log=log, edu=edu, school=school)
+                                   , asc=asc, lat=lat, log=log, edu=edu, school=school, token=token)
     else:
         return render_template('school.html')
-
-
 
 
 def str_to_bool(input):

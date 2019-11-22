@@ -12,7 +12,7 @@
     {% endfor %}
 
       {% for index in range(pages) %}
-        <a href="{{ url_for('schoolPage', page_id=index+1, lat=lat, log=log, dis=dis, edu=edu, school=school, asc=asc) }}">{{index+1}}</a>
+        <a href="{{ url_for('schoolPage', page_id=index+1, lat=lat, log=log, dis=dis, edu=edu, school=school, asc=asc, token=token) }}">{{index+1}}</a>
         {%endfor%}
 	{%endif%}
 </div>
