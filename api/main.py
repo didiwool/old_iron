@@ -154,7 +154,8 @@ school_parser.add_argument('ascending', type=inputs.boolean)
 
 admin_parser = reqparse.RequestParser()
 admin_parser.add_argument('time', type=int)
-admin_parser.add_argument('api_type', choices=['predict', 'login', 'school_list', 'Any'])
+admin_parser.add_argument('api_type', choices=['predict', 'login', 'school_list_get', 'school_list_post',
+                                               'property_list_get', 'property_list_post', 'Any'])
 
 
 @api.route('/admin_check')
@@ -192,44 +193,16 @@ class Token(Resource):
         args = credential_parser.parse_args()
         username = args.get('username')
         password = args.get('password')
+        num = df_record["time"].count()
+        df_record.loc[num, "call_name"] = "token"
+        df_record.loc[num, "time"] = datetime.datetime.now()
+        df_record.to_csv("record.csv")
         if username in df1.username.values:
             row_id = df1.loc[df1['username'] == username].index[0]
             if str(df1.loc[row_id, 'password']) == password:
                 return {"token": auth.generate_token(username)}
-        num = df_record["time"].count()
-        df_record.loc[num, "call_name"] = "login"
-        df_record.loc[num, "time"] = datetime.datetime.now()
-        df_record.to_csv("record.csv")
+
         return {"message": "authorization has been refused for those credentials."}, 401
-
-
-@api.route('/register')
-class Register(Resource):
-    @api.response(201, 'Successful')
-    @api.response(400, 'Fail')
-    @api.doc(description="Create a new account")
-    @api.expect(credential_model, validate=True)
-    def post(self):
-        info = request.json
-
-        if 'username' not in info or 'password' not in info or 'usertype' not in info:
-            return {"message": "Missing Information for Registration"}, 400
-
-        username = info['username']
-
-        # check if the given user already exists
-        if username in df1.username.values:
-            return {"message": "The username has already been used"}, 400
-        index = df1.username.count()
-        print(index)
-        # Put the values into the dataframe
-        for key in info:
-            if key not in credential_model.keys():
-                return {"message": "Attribute {} is invalid".format(key)}, 400
-            df1.loc[index, key] = info[key]
-        # print(df1.head())
-        # df.append(info, ignore_index=True)
-        return {"message": "Create the account successfully"}, 201
 
 
 @api.route('/predict')
@@ -331,7 +304,7 @@ class SchoolList(Resource):
             }
         respdict = {"code": 200, "message": "Get question ok", "data": respData}
         num = df_record["time"].count()
-        df_record.loc[num, "call_name"] = "school_list"
+        df_record.loc[num, "call_name"] = "school_list_get"
         df_record.loc[num, "time"] = datetime.datetime.now()
         df_record.to_csv("record.csv")
         return jsonify(respdict)
@@ -353,7 +326,10 @@ class SchoolList(Resource):
             if key not in school_model.keys():
                 return {"message": "Property {} is invalid".format(key)}, 400
             df2.loc[index, key] = school[key]
-
+        num = df_record["time"].count()
+        df_record.loc[num, "call_name"] = "school_list_post"
+        df_record.loc[num, "time"] = datetime.datetime.now()
+        df_record.to_csv("record.csv")
         print(df2.tail(5))
         return {"message": "School {} is created".format(name)}, 201
 
@@ -451,7 +427,7 @@ class HouseList(Resource):
             }
         respdict = {"code": 200, "message": "Get question ok", "data": respData}
         num = df_record["time"].count()
-        df_record.loc[num, "call_name"] = "property_list"
+        df_record.loc[num, "call_name"] = "property_list_get"
         df_record.loc[num, "time"] = datetime.datetime.now()
         df_record.to_csv("record.csv")
         return jsonify(respdict)
@@ -495,7 +471,10 @@ class Property(Resource):
         for idx in ds:
             property = ds[idx]
             ret.append(property)
-
+        num = df_record["time"].count()
+        df_record.loc[num, "call_name"] = "property_list_post"
+        df_record.loc[num, "time"] = datetime.datetime.now()
+        df_record.to_csv("record.csv")
         return ret
     # @api.response(404, 'Property was not found')
     # @api.response(200, 'Successful')
