@@ -45,6 +45,30 @@ def register():
             return render_template('register.html')
     return render_template('register.html')
 
+@app.route('/predict',methods=['POST', 'GET'])
+def predict():
+    if request.method == "POST":
+        distance = request.form["distance"]
+        ascending = request.form["ascending"]
+        latitude = request.form["latitude"]
+        longitude = request.form["longitude"]
+        Type = request.form["Type"]
+        bedroom = request.form["bedroom"]
+        bathroom = request.form["bathroom"]
+        carspace = request.form["carspace"]
+        ascending = str_to_bool(ascending)
+
+        print(distance)
+        print(ascending)
+        print(latitude)
+        print(longitude)
+        print(Type)
+        print(bedroom)
+        print(bathroom)
+        print(carspace)
+
+    return render_template('predict.html')
+
 
 @app.route('/school/', methods=['POST', 'GET'])
 def school():
@@ -86,6 +110,8 @@ def schoolPage(page_id,lat,log,dis,edu,school,asc):
                                    , asc=asc, lat=lat, log=log, edu=edu, school=school)
     else:
         return render_template('school.html')
+
+
 
 
 def str_to_bool(input):
