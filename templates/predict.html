@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>predict</title>
+</head>
+<body>
+
+	<form method = "POST" target="id_iframe">
+	    <h2>
+
+	        <p style="text-align: center">
+				<div class = "login_style">
+					Distance:<br>  <input type="text" name="distance" > <br>
+					<select name="ascending">
+					  <option value ="Ascending">Ascending</option>
+					  <option value ="Dscending">Dscending</option>
+					</select> <br>
+					Latitude:<br>  <input type=text id="latitude" name="latitude"> <br>
+					Longitude:<br>  <input type=text name="longitude"> <br>
+					<select name="Type">
+						<option value="Unit">Unit</option>
+						<option value="Apartment">Apartment</option>
+						<option value="House">House</option>
+						<option value="TownHouse">TownHouse</option>
+					</select> <br>
+					Bedroom:<br>  <input type=text name="bedroom" > <br>
+					Bathroom:<br>  <input type=text name="bathroom"> <br>
+					CarSpace:<br>  <input type=text name="carspace"> <br>
+
+
+					<button>search</button>
+				</div>
+	        </p>
+	    </h2>
+	</form>
+
+
+</body>
+
+
+
+<script>
+ var flag = true;
+ console.log(1111)
+ function check(obj){
+	if(obj.id == 'ac' && obj.checked == true){
+		console.log(2222)
+		document.getElementById('dc').checked = false;
+	}
+	else if(obj.id == 'dc' && obj.checked == true){
+		console.log(3333)
+		document.getElementById('ac').checked = false;
+	}
+ }
+
+
+ </script>
+</html>
