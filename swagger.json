@@ -1,0 +1,429 @@
+{
+    "swagger": "2.0",
+    "basePath": "/",
+    "paths": {
+        "/admin_check": {
+            "post": {
+                "responses": {
+                    "401": {
+                        "description": "Fail"
+                    },
+                    "200": {
+                        "description": "Successful"
+                    }
+                },
+                "description": "Check the api calls",
+                "operationId": "post_admin_check",
+                "parameters": [
+                    {
+                        "name": "time",
+                        "in": "query",
+                        "type": "integer"
+                    },
+                    {
+                        "name": "api_type",
+                        "in": "query",
+                        "type": "string",
+                        "enum": [
+                            "predict",
+                            "login",
+                            "school_list_get",
+                            "school_list_post",
+                            "property_list_get",
+                            "property_list_post",
+                            "Any"
+                        ],
+                        "collectionFormat": "multi"
+                    }
+                ],
+                "tags": [
+                    "Housing Property"
+                ]
+            }
+        },
+        "/predict": {
+            "post": {
+                "responses": {
+                    "400": {
+                        "description": "Missing Information"
+                    },
+                    "200": {
+                        "description": "Successful"
+                    }
+                },
+                "description": "Predict price of a real estate",
+                "operationId": "post_predict",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/Property"
+                        }
+                    }
+                ],
+                "tags": [
+                    "Housing Property"
+                ]
+            }
+        },
+        "/properties": {
+            "get": {
+                "responses": {
+                    "404": {
+                        "description": "Fail to return"
+                    },
+                    "200": {
+                        "description": "Successful"
+                    }
+                },
+                "description": "Return a list of properties with pagination",
+                "operationId": "get_house_list",
+                "parameters": [
+                    {
+                        "name": "latitude",
+                        "in": "query",
+                        "type": "number"
+                    },
+                    {
+                        "name": "longitude",
+                        "in": "query",
+                        "type": "number"
+                    },
+                    {
+                        "name": "distance",
+                        "in": "query",
+                        "type": "integer"
+                    },
+                    {
+                        "name": "pageNumber",
+                        "in": "query",
+                        "type": "integer"
+                    },
+                    {
+                        "name": "pageSize",
+                        "in": "query",
+                        "type": "integer"
+                    },
+                    {
+                        "name": "bedrooms",
+                        "in": "query",
+                        "type": "integer"
+                    },
+                    {
+                        "name": "bathrooms",
+                        "in": "query",
+                        "type": "integer"
+                    },
+                    {
+                        "name": "Parking",
+                        "in": "query",
+                        "type": "integer"
+                    },
+                    {
+                        "name": "ascending",
+                        "in": "query",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "property_type",
+                        "in": "query",
+                        "type": "string",
+                        "enum": [
+                            "house",
+                            "apartment",
+                            "unit",
+                            "townhouse",
+                            "Any"
+                        ],
+                        "collectionFormat": "multi"
+                    }
+                ],
+                "tags": [
+                    "Housing Property"
+                ]
+            },
+            "post": {
+                "responses": {
+                    "400": {
+                        "description": "Fail to add a property"
+                    },
+                    "201": {
+                        "description": "Successful"
+                    }
+                },
+                "description": "Add a new property to the list",
+                "operationId": "post_house_list",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/Property"
+                        }
+                    }
+                ],
+                "tags": [
+                    "Housing Property"
+                ]
+            }
+        },
+        "/property/{id}": {
+            "parameters": [
+                {
+                    "in": "path",
+                    "description": "The Property identifier",
+                    "name": "id",
+                    "required": true,
+                    "type": "integer"
+                }
+            ],
+            "delete": {
+                "responses": {
+                    "200": {
+                        "description": "Successful"
+                    },
+                    "404": {
+                        "description": "Property was not found"
+                    }
+                },
+                "description": "Delete a property by its ID",
+                "operationId": "delete_property",
+                "tags": [
+                    "Housing Property"
+                ]
+            },
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Successful"
+                    },
+                    "404": {
+                        "description": "Property was not found"
+                    }
+                },
+                "description": "Get a property by its identifier",
+                "operationId": "get_property",
+                "tags": [
+                    "Housing Property"
+                ]
+            }
+        },
+        "/schools": {
+            "get": {
+                "responses": {
+                    "404": {
+                        "description": "Fail to return"
+                    },
+                    "200": {
+                        "description": "Successful"
+                    }
+                },
+                "description": "Return a list of school with pagination",
+                "operationId": "get_school_list",
+                "parameters": [
+                    {
+                        "name": "latitude",
+                        "in": "query",
+                        "type": "number"
+                    },
+                    {
+                        "name": "longitude",
+                        "in": "query",
+                        "type": "number"
+                    },
+                    {
+                        "name": "distance",
+                        "in": "query",
+                        "type": "integer"
+                    },
+                    {
+                        "name": "pageNumber",
+                        "in": "query",
+                        "type": "integer"
+                    },
+                    {
+                        "name": "pageSize",
+                        "in": "query",
+                        "type": "integer"
+                    },
+                    {
+                        "name": "education_type",
+                        "in": "query",
+                        "type": "string",
+                        "enum": [
+                            "Government",
+                            "Independent",
+                            "Catholic",
+                            "Any"
+                        ],
+                        "collectionFormat": "multi"
+                    },
+                    {
+                        "name": "school_type",
+                        "in": "query",
+                        "type": "string",
+                        "enum": [
+                            "Primary",
+                            "Pri/Sec",
+                            "Special",
+                            "Secondary",
+                            "Language",
+                            "Any"
+                        ],
+                        "collectionFormat": "multi"
+                    },
+                    {
+                        "name": "ascending",
+                        "in": "query",
+                        "type": "boolean"
+                    }
+                ],
+                "tags": [
+                    "Housing Property"
+                ]
+            },
+            "post": {
+                "responses": {
+                    "400": {
+                        "description": "Fail to add a school"
+                    },
+                    "201": {
+                        "description": "Successful"
+                    }
+                },
+                "description": "Add a new school to the list",
+                "operationId": "post_school_list",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/School"
+                        }
+                    }
+                ],
+                "tags": [
+                    "Housing Property"
+                ]
+            }
+        },
+        "/token": {
+            "post": {
+                "responses": {
+                    "401": {
+                        "description": "Fail"
+                    },
+                    "200": {
+                        "description": "Successful"
+                    }
+                },
+                "description": "Log a user into the system",
+                "operationId": "post_token",
+                "parameters": [
+                    {
+                        "name": "username",
+                        "in": "query",
+                        "type": "string"
+                    },
+                    {
+                        "name": "password",
+                        "in": "query",
+                        "type": "string"
+                    }
+                ],
+                "tags": [
+                    "Housing Property"
+                ]
+            }
+        }
+    },
+    "info": {
+        "title": "Housing Property",
+        "version": "1.0",
+        "description": "Using the location to predict housing price and to recommend house property and schools near you."
+    },
+    "produces": [
+        "application/json"
+    ],
+    "consumes": [
+        "application/json"
+    ],
+    "securityDefinitions": {
+        "API-KEY": {
+            "type": "apiKey",
+            "in": "header",
+            "name": "AUTH-TOKEN"
+        }
+    },
+    "security": [
+        {
+            "API-KEY": []
+        }
+    ],
+    "tags": [
+        {
+            "name": "Housing Property",
+            "description": "Default namespace"
+        }
+    ],
+    "definitions": {
+        "Property": {
+            "properties": {
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                },
+                "distance": {
+                    "type": "number"
+                },
+                "bedrooms": {
+                    "type": "integer"
+                },
+                "bathroom": {
+                    "type": "integer"
+                },
+                "Parking": {
+                    "type": "integer"
+                }
+            },
+            "type": "object"
+        },
+        "School": {
+            "properties": {
+                "X": {
+                    "type": "number"
+                },
+                "Y": {
+                    "type": "number"
+                },
+                "Education_Sector": {
+                    "type": "string"
+                },
+                "School_Name": {
+                    "type": "string"
+                },
+                "School_Type": {
+                    "type": "string"
+                },
+                "Postal_Town": {
+                    "type": "string"
+                }
+            },
+            "type": "object"
+        }
+    },
+    "responses": {
+        "ParseError": {
+            "description": "When a mask can't be parsed"
+        },
+        "MaskError": {
+            "description": "When any error occurs on mask"
+        }
+    }
+}
